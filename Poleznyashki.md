@@ -110,3 +110,139 @@ sudo systemctl status grafana-server
 ```
 
 http://<наш сервер>:3000 (admin \ admin)
+
+
+# 9.5 установка Node exporter
+> Создайте файл с правилом оповещения, как в лекции, и добавьте его в конфиг Prometheus.
+`sudo nano /etc/prometheus/netology-test.yml`
+
+```
+groups: # Список групп
+- name: netology-test # Имя группы
+  rules: # Список правил текущей группы
+  - alert: InstanceDown # Название текущего правила
+    expr: up == 0 # Логическое выражение
+    for: 1m # Сколько ждать отбоя предупреждения перед отправкой оповещения
+    labels:
+      severity: critical # Критичность события
+    annotations: # Описание
+      description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute.' # Полное описание алерта
+      summary: Instance {{ $labels.instance }} is down # Краткое описание алерта
+```
+`sudo nano /etc/prometheus/prometheus.yml`
+
+*Добавьте в раздел **rule_files запись**:* `- "netology-test.yml"`
+`sudo systemctl restart prometheus && sudo systemctl status prometheus`
+
+`sudo nano /etc/prometheus/alertmanager.yml`
+```
+global:
+route:
+ group_by: ['alertname'] # Параметр группировки оповещений - по имени
+ group_wait: 30s # Сколько ждать восстановления, перед тем как отправить первое оповещение.
+ group_interval: 10m # Сколько ждать перед тем как дослать оповещение о новых сработках по текущему алерту.
+ repeat_interval: 60m # Сколько ждать перед тем как отправить повторное оповещение
+ receiver: 'email' # Способ которым будет доставляться текущее оповещение
+receivers: # Настройка способов оповещения
+- name: 'email'
+  email_configs:
+  - to: 'yourmailto@todomain.com'
+    from: 'yourmailfrom@fromdomain.com'
+    smarthost: 'mailserver:25'
+    auth_username: 'user'
+    auth_identity: 'user'
+    auth_password: 'paS$w0rd'
+```
+
+`sudo systemctl restart prometheus-alertmanager && systemctl status prometheus-alertmanager`
+
+
+## Задание 2
+>Установите Alertmanager и интегрируйте его с Prometheus.
+```
+wget https://github.com/prometheus/alertmanager/releases/download/v0.24.0/alertmanager-0.24.0.linux-amd64.tar.gz
+tar -xvf alertmanager-0.24.0.linux-amd64.tar.gz
+```
+```
+sudo cp ./alertmanager-*.linux-amd64/alertmanager /usr/local/bin
+sudo cp ./alertmanager-*.linux-amd64/amtool /usr/local/bin
+```
+```
+sudo cp ./alertmanager-*.linux-amd64/alertmanager.yml /etc/prometheus
+sudo chown -R prometheus:prometheus /etc/prometheus/alertmanager.yml
+```
+`sudo nano /etc/systemd/system/prometheus-alertmanager.service`
+```
+[Unit]
+Description=Alertmanager Service
+After=network.target
+[Service]
+EnvironmentFile=-/etc/default/alertmanager
+User=prometheus
+Group=prometheus
+Type=simple
+ExecStart=/usr/local/bin/alertmanager \
+--config.file=/etc/prometheus/alertmanager.yml \
+--storage.path=/var/lib/prometheus/alertmanager $ARGS
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+```
+```
+sudo systemctl enable prometheus-alertmanager
+sudo systemctl start prometheus-alertmanager
+sudo systemctl status prometheus-alertmanager
+```
+
+`sudo nano /etc/prometheus/prometheus.yml`
+```
+alerting:
+ alertmanagers:
+ - static_configs:
+ - targets: # Можно указать как targets: [‘localhost”9093’]
+ - localhost:9093 
+```
+
+## Задание 3
+>Активируйте экспортёр метрик в Docker и подключите его к Prometheus.
+
+```
+sudo apt update
+sudo apt-get install ca-certificates curl gnupg -y
+sudo mkdir -m 0755 -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+```
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo docker run hello-world
+```
+```
+sudo nano /etc/docker/daemon.json
+```
+```
+{
+ "metrics-addr" : "0.0.0.0:9323",
+ "experimental" : true
+}
+```
+`sudo systemctl restart docker && systemctl status docker`
+
+`sudo nano /etc/prometheus/prometheus.yml`
+
+```
+ static_configs:
+      - targets: ["localhost:9090"]
+      - targets: ["192.168.10.14:9100"]
+      - targets: ["192.168.10.17:9100"]
+      - targets: ["localhost:9323"]
+```
+`sudo systemctl restart prometheus && systemctl status prometheus`
+
+## Задание 4
+`docker pull zabbix/zabbix-appliance`
