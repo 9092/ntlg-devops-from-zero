@@ -6,6 +6,9 @@
 
 `for i in 1 2; do kill %$i; done`
 
+
+`journalctl -xeu keepalived`
+
 # 9.4 Установка Prometheus
 ```
 sudo groupadd --system prometheus
@@ -246,3 +249,35 @@ sudo nano /etc/docker/daemon.json
 
 ## Задание 4
 `docker pull zabbix/zabbix-appliance`
+
+
+
+
+# 10.1
+Keepalived
+
+`sudo apt install keepalived -y`
+`sudo nano /etc/keepalived/keepalived.conf`
+
+```
+vrrp_instance VI_1 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 123456
+    }
+
+    unicast_peer {
+        172.29.200.100
+}
+
+
+    virtual_ipaddress {
+        192.29.224.10/24
+}
+```
+
