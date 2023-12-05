@@ -3,17 +3,22 @@
 
 <details>
 <summary> Вспомогательные команды для Ubuntu</summary>
+
 Создаем каталог Docker:
 ```
 mkdir ~/docker
 ```
+
 В этой папке создаем файл с именем Docker со следующим содержимым:
+
 ```
 FROM nginx:latest
 EXPOSE 80
 COPY index.html  /usr/share/nginx/html/
 ```
+
 Создаем в той же директории файл index.html следующего содержания:
+
 ```
 <html>
  <head>
