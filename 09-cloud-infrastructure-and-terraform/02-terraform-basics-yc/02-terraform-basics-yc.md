@@ -331,3 +331,36 @@ resource "yandex_compute_instance" "platform_db" {
 ![09-02-04](screenshots/09-02-04.png)
 
 ![09-02-05](screenshots/09-02-05.png)
+
+### Задание 4
+
+>Объявите в файле outputs.tf один output , содержащий: instance_name, external_ip, fqdn для каждой из ВМ в удобном лично для вас формате. Примените изменения.
+
+<details>
+<summary> Содержимое файла outputs.tf </summary>
+
+```
+output "platform_outputs_map" {
+  description = "outputs - platform"
+  value = {
+    vm_name = "${yandex_compute_instance.platform.name}"
+    vm_fqdn = "${yandex_compute_instance.platform.fqdn}"
+    vm_external_ip = "${yandex_compute_instance.platform.network_interface.0.nat_ip_address}"
+  }
+}
+
+output "platform_db_outputs_map" {
+  description = "outputs - platform_db"
+  value = {
+    vm_name = "${yandex_compute_instance.platform_db.name}"
+    vm_fqdn = "${yandex_compute_instance.platform_db.fqdn}"
+    vm_external_ip = "${yandex_compute_instance.platform_db.network_interface.0.nat_ip_address}"
+  }
+}
+```
+
+</details>
+
+---
+
+![09-02-06](screenshots/09-02-06.png)
