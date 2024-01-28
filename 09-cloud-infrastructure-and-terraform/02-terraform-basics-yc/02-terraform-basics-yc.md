@@ -364,16 +364,21 @@ output "platform_outputs_map" {
 
 > В файле locals.tf опишите в одном local-блоке имя каждой ВМ, используйте интерполяцию ${..} с НЕСКОЛЬКИМИ переменными по примеру из лекции.
 
+<details>
+<summary> Релевантное содержимое файла locals.tf </summary>
+
 ```
-# locals.tf
 locals {
   db_vm_name    = "${var.proj}-${var.env}-${var.app}-db"
   web_vm_name   = "${var.proj}-${var.env}-${var.app}-web"
 }
 ```
+</details>
+
+<details>
+<summary> Релевантное содержимое файла variables.tf </summary>
 
 ```
-# variables.tf
 variable "proj" {
   type         = string
   description   = "interpolation: project"
@@ -389,18 +394,24 @@ variable "app" {
   description   = "interpolation: app"
 }
 ```
+</details>
+
+<details>
+<summary> Релевантное содержимое файла terraform.tfvars </summary>
 
 ```
-# terraform.tfvars
 proj    = "netology"
 env     = "develop"
 app     = "platform"
 ```
-
+</details>
 
 ![09-02-07](screenshots/09-02-07.png)
 
 > Замените переменные внутри ресурса ВМ на созданные вами local-переменные.
+
+<details>
+<summary> Релевантное содержимое конфигурационных файлов </summary>
 
 ```
 resource "yandex_compute_instance" "platform_db" {
@@ -422,6 +433,7 @@ resource "yandex_compute_instance" "platform" {
     core_fraction = var.vm_web_compute_map.core_fraction
   }
 ```
+</details>
 
 ![09-02-08](screenshots/09-02-08.png)
 
