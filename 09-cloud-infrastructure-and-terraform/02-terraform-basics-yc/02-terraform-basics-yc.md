@@ -1,4 +1,7 @@
 # 09.02. Основы Terraform. Yandex Cloud - Кулагин Игорь
+
+## [Ссылка на исходный код](./src)
+
 ### Задание 1
 
 > Инициализируйте проект, выполните код. Исправьте намеренно допущенные синтаксические ошибки. Ищите внимательно, посимвольно. Ответьте, в чём заключается их суть.
@@ -411,7 +414,7 @@ app     = "platform"
 > Замените переменные внутри ресурса ВМ на созданные вами local-переменные.
 
 <details>
-<summary> Релевантное содержимое конфигурационных файлов </summary>
+<summary> Релевантное содержимое других конфигурационных файлов </summary>
 
 ```
 resource "yandex_compute_instance" "platform_db" {
@@ -440,3 +443,186 @@ resource "yandex_compute_instance" "platform" {
 > Примените изменения.
 
 ![09-02-09](screenshots/09-02-09.png)
+
+### Задание 6
+
+> Вместо использования трёх переменных ".._cores",".._memory",".._core_fraction" в блоке resources {...}, объедините их в единую map-переменную vms_resources и внутри неё конфиги обеих ВМ в виде вложенного map.
+
+
+
+
+<details>
+<summary> Релевантное содержимое файла variables.tf </summary>
+
+```
+# declaire map variable for vm resources
+
+variable "vms_resources" {
+  type = map(object({
+    cores         = number
+    memory        = number
+    core_fraction = number
+  }))
+}
+
+```
+</details>
+
+<details>
+<summary> Релевантное содержимое файла terraform.tfvars </summary>
+
+```
+vms_resources = {
+  web = {
+    cores         = 2
+    memory        = 1
+    core_fraction = 5
+  },
+  db = {
+    cores         = 2
+    memory        = 2
+    core_fraction = 20
+  }
+}
+```
+
+</details>
+
+<details>
+<summary> Релевантное содержимое других конфигурационных файлов </summary>
+
+```
+resource "yandex_compute_instance" "platform_web" {
+  name            = local.web_vm_name
+  platform_id     = var.vm_web_platform_name
+  resources {
+    cores         = var.vms_resources.web.cores
+    memory        = var.vms_resources.web.memory
+    core_fraction = var.vms_resources.web.core_fraction
+  }
+
+resource "yandex_compute_instance" "platform_db" {
+  name            = local.db_vm_name
+  zone            = var.vm_db_zone
+  platform_id     = var.vm_db_platform_name
+  resources {
+    cores         = var.vms_resources.db.cores
+    memory        = var.vms_resources.db.memory
+    core_fraction = var.vms_resources.db.core_fraction
+  }
+```
+
+</details>
+
+> Создайте и используйте отдельную map переменную для блока metadata, она должна быть общая для всех ваших ВМ.
+
+<details>
+<summary> Релевантное содержимое файла variables.tf  </summary>
+
+```
+# declair metadata variable
+variable "metadata" {
+  type = map(object({
+    serial_port_enable  = number
+    ssh_keys            = string
+  }))
+}
+```
+</details>
+
+<details>
+<summary> Релевантное содержимое файла terraform.tfvars </summary>
+
+```
+metadata = {
+  platform = {
+     serial_port_enable = 1
+     ssh_keys = "ssh-ed25519 AAAAC3NzaC1lZDI...."
+  }
+}
+```
+</details>
+
+<details>
+<summary> Релевантное содержимое других конфигурационных файлов </summary>
+
+```
+# vm platform_web
+
+resource "yandex_compute_instance" "platform_web" {
+  name            = local.web_vm_name
+  platform_id     = var.vm_web_platform_name
+  resources {
+    cores         = var.vms_resources.web.cores
+    memory        = var.vms_resources.web.memory
+    core_fraction = var.vms_resources.web.core_fraction
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+    }
+  }
+
+  scheduling_policy {
+    preemptible = true
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.develop.id
+    nat       = true
+  }
+
+  metadata = {
+    serial-port-enable  = var.metadata.platform.serial_port_enable
+    ssh-keys            = var.metadata.platform.ssh_keys
+  }
+
+}
+
+# vm platform_db
+
+resource "yandex_compute_instance" "platform_db" {
+  name            = local.db_vm_name
+  zone            = var.vm_db_zone
+  platform_id     = var.vm_db_platform_name
+  resources {
+    cores         = var.vms_resources.db.cores
+    memory        = var.vms_resources.db.memory
+    core_fraction = var.vms_resources.db.core_fraction
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+    }
+  }
+
+  scheduling_policy {
+    preemptible = true
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.platform_db.id
+    nat       = true
+  }
+
+  metadata = {
+    serial-port-enable  = var.metadata.platform.serial_port_enable
+    ssh-keys            = var.metadata.platform.ssh_keys
+  }
+}
+
+```
+</details>
+
+
+> Найдите и закоментируйте все, более не используемые переменные проекта.
+
+[Ссылка на исходный код](./src)
+
+> Проверьте terraform plan. Изменений быть не должно.
+
+Так  и получилось, изменений не было.
+
+![09-02-10](screenshots/09-02-10.png)
