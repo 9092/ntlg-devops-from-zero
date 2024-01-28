@@ -359,3 +359,72 @@ output "platform_outputs_map" {
 ---
 
 ![09-02-06](screenshots/09-02-06.png)
+
+### Задание 5
+
+> В файле locals.tf опишите в одном local-блоке имя каждой ВМ, используйте интерполяцию ${..} с НЕСКОЛЬКИМИ переменными по примеру из лекции.
+
+```
+# locals.tf
+locals {
+  db_vm_name    = "${var.proj}-${var.env}-${var.app}-db"
+  web_vm_name   = "${var.proj}-${var.env}-${var.app}-web"
+}
+```
+
+```
+# variables.tf
+variable "proj" {
+  type         = string
+  description   = "interpolation: project"
+}
+
+variable "env" {
+  type         = string
+  description   = "interpolation: environment"
+}
+
+variable "app" {
+  type         = string
+  description   = "interpolation: app"
+}
+```
+
+```
+# terraform.tfvars
+proj    = "netology"
+env     = "develop"
+app     = "platform"
+```
+
+
+![09-02-07](screenshots/09-02-07.png)
+
+> Замените переменные внутри ресурса ВМ на созданные вами local-переменные.
+
+```
+resource "yandex_compute_instance" "platform_db" {
+  name            = local.db_vm_name
+  zone            = var.vm_db_zone
+  platform_id     = var.vm_db_platform_name
+  resources {
+    cores         = var.vm_db_compute_resources_map.cores
+    memory        = var.vm_db_compute_resources_map.memory
+    core_fraction = var.vm_db_compute_resources_map.core_fraction
+  }
+
+resource "yandex_compute_instance" "platform" {
+  name            = local.web_vm_name
+  platform_id     = var.vm_web_platform_name
+  resources {
+    cores         = var.vm_web_compute_map.cores
+    memory        = var.vm_web_compute_map.memory
+    core_fraction = var.vm_web_compute_map.core_fraction
+  }
+```
+
+![09-02-08](screenshots/09-02-08.png)
+
+> Примените изменения.
+
+![09-02-09](screenshots/09-02-09.png)
