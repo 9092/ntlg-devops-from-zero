@@ -239,6 +239,7 @@ resource "yandex_compute_instance" "storage_vm" {
 <details>
 <summary> Код файла ansible.tf </summary>
 
+```
 resource "local_file" "ansible_inventory" {
   content       = templatefile("${path.module}/ansible_hosts.tftpl",
     {
@@ -287,6 +288,7 @@ resource "null_resource" "web_hosts_provision" {
       ssh_public_key     = var.ssh_root_public_key # при изменении переменной
     }
 }
+```
 
 </details>
 
@@ -322,8 +324,8 @@ ${i["name"]}   ansible_host=${i["network_interface"][0]["nat_ip_address"]} fqdn=
 <details>
 <summary> Код файла install_nginx.yml </summary>
 
----
 ```
+---
 - name: test
   gather_facts: false
   hosts: web
