@@ -228,17 +228,102 @@ resource "yandex_compute_instance" "storage_vm" {
 
 > Выполните код. Приложите скриншот получившегося файла.
 
+---
+<details>
+<summary> Код файла ansible_hosts.tftpl </summary>
 
-Скриншот файла `hosts.cfg`:
+```
+[web]
 
-![09-03-02](screenshots/09-03-02.png)
+%{~ for i in web ~}
+${i["name"]}   ansible_host=${i["network_interface"][0]["nat_ip_address"]} fqdn=${i["fqdn"]}
+%{~ endfor ~}
 
+[db]
+
+%{~ for i in db ~}
+${i["name"]}   ansible_host=${i["network_interface"][0]["nat_ip_address"]} fqdn=${i["fqdn"]}
+%{~ endfor ~}
+
+[storage]
+
+%{~ for i in storage ~}
+${i["name"]}   ansible_host=${i["network_interface"][0]["nat_ip_address"]} fqdn=${i["fqdn"]}
+%{~ endfor ~}
+```
+
+</details>
 
 ---
 
 <details>
-<summary> Код файла ansible.tf </summary>
+<summary> Релевантный код файла ansible.tf </summary>
 
+```
+resource "local_file" "ansible_inventory" {
+  content       = templatefile("${path.module}/ansible_hosts.tftpl",
+    {
+        web     =  yandex_compute_instance.web,
+        db      =  yandex_compute_instance.db,
+        storage =  [yandex_compute_instance.storage_vm]
+    }
+)
+
+  filename = "${abspath(path.module)}/hosts.cfg"
+}
+
+```
+
+</details>
+
+---
+
+Скриншот получившегося в итоге файла `hosts.cfg`:
+
+![09-03-02](screenshots/09-03-02.png)
+
+Я, по всей видимости, немного неправильно понял задание и решил довести довести его корректного запуска плейбука ансибл для установки nginx. Ниже приведен листинг самогорелевантных файлов. 
+
+---
+
+<details>
+<summary> Код файла install_nginx.yml </summary>
+
+```
+---
+- name: test
+  gather_facts: false
+  hosts: web
+  vars:
+    ansible_ssh_user: ubuntu
+  become: yes
+
+  pre_tasks:
+    - name: Validating the ssh port is open and
+      wait_for:
+        host: "{{ansible_host}}"
+        port: 22
+        delay: 0
+        timeout: 600
+        state: started
+        msg: "ssh server is not running"
+
+  tasks:
+    - name: Install Nginx Web Server on Debian Family
+      apt:
+        name:
+          - nginx
+          - jq
+        state: latest
+        update_cache: yes
+```
+
+</details>
+
+---
+
+<details>
+<summary> Полный листинг кода файла ansible.tf </summary>
 ```
 resource "local_file" "ansible_inventory" {
   content       = templatefile("${path.module}/ansible_hosts.tftpl",
@@ -288,72 +373,9 @@ resource "null_resource" "web_hosts_provision" {
       ssh_public_key     = var.ssh_root_public_key # при изменении переменной
     }
 }
-```
-
-</details>
-
----
-
-<details>
-<summary> Код файла ansible_hosts.tftpl </summary>
 
 ```
-[web]
 
-%{~ for i in web ~}
-${i["name"]}   ansible_host=${i["network_interface"][0]["nat_ip_address"]} fqdn=${i["fqdn"]}
-%{~ endfor ~}
-
-[db]
-
-%{~ for i in db ~}
-${i["name"]}   ansible_host=${i["network_interface"][0]["nat_ip_address"]} fqdn=${i["fqdn"]}
-%{~ endfor ~}
-
-[storage]
-
-%{~ for i in storage ~}
-${i["name"]}   ansible_host=${i["network_interface"][0]["nat_ip_address"]} fqdn=${i["fqdn"]}
-%{~ endfor ~}
-```
-
-</details>
-
----
-
-<details>
-<summary> Код файла install_nginx.yml </summary>
-
-```
----
-- name: test
-  gather_facts: false
-  hosts: web
-  vars:
-    ansible_ssh_user: ubuntu
-  become: yes
-
-  pre_tasks:
-    - name: Validating the ssh port is open and
-      wait_for:
-        host: "{{ansible_host}}"
-        port: 22
-        delay: 0
-        timeout: 600
-        state: started
-        msg: "ssh server is not running"
-
-  tasks:
-    - name: Install Nginx Web Server on Debian Family
-      apt:
-        name:
-          - nginx
-          - jq
-        state: latest
-        update_cache: yes
-```
-
-</details>
 
 ---
 
