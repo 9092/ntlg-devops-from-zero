@@ -324,6 +324,7 @@ resource "local_file" "ansible_inventory" {
 
 <details>
 <summary> Полный листинг кода файла ansible.tf </summary>
+
 ```
 resource "local_file" "ansible_inventory" {
   content       = templatefile("${path.module}/ansible_hosts.tftpl",
@@ -373,12 +374,10 @@ resource "null_resource" "web_hosts_provision" {
       ssh_public_key     = var.ssh_root_public_key # при изменении переменной
     }
 }
-
 ```
-
+</details>
 
 ---
-
 
 Результат выполнения `terrform apply`, включая применение плейбука ансибл:
 
