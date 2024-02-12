@@ -147,7 +147,8 @@ locals {
 
 ```
 resource "yandex_compute_disk" "extra_disks" {
-  count = 3                                                                                                                                                                                                                                               name = "disk-${count.index}"
+  count = 3
+  name = "disk-${count.index}"
   size = 1
 }
 ```
